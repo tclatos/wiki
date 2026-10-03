@@ -1,0 +1,28 @@
+default_profile: default
+dataset_adapter: wiki.adapter.DefaultBenchmarkAdapter
+
+paths:
+  runs: ${paths.data_root}/wiki/{profile}/runs.jsonl
+  scores: ${paths.data_root}/wiki/{profile}/scores.jsonl
+  scores_summary: ${paths.data_root}/wiki/{profile}/scores_summary.json
+
+bench_profiles:
+  default:
+    description: "Default benchmark profile for wiki"
+    docgraph_profile: default
+    agent_profile: default
+
+    files:
+      pathspecs: ["*"]
+      docs: []
+      limit: null
+
+    runner:
+      concurrency: 5
+      folder_id: null
+      monitoring: null
+
+    grader:
+      enabled: true
+      llm: default
+      concurrency: 5

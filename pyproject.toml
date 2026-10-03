@@ -1,0 +1,45 @@
+[project]
+name = "wiki"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "docling>=2.130",
+    "easyocr>=1.7",
+    "genai-graph",
+    "genai-tk[docling]",
+]
+
+[tool.uv.sources]
+# Local editable checkouts — the README's "active development" variant
+# (--graph-path ../genai-graph). Consumer-level sources win for the whole graph.
+genai-tk = { path = "/home/tcl/prj/genai-tk", editable = true }
+genai-graph = { path = "/home/tcl/prj/genai-graph", editable = true }
+
+[tool.uv]
+package = true
+# NOTE: do not add `override-dependencies` for genai-tk here. Overrides replace
+# the requirement everywhere it appears — including this project's own
+# `genai-tk[docling]` and the `genai-tk[<extra>]` forwarding extras below — and
+# an override without extras silently strips them (harnessing/docling extras
+# would stop installing). Consumer-level [tool.uv.sources] above already pins
+# the whole graph (including genai-graph's baked source) to the local checkouts.
+
+
+# Forward genai-tk optional extras — install with: uv sync --extra <name>
+[project.optional-dependencies]
+harnessing = ["genai-tk[harnessing]"]
+browser    = ["genai-tk[browser]"]
+nlp        = ["genai-tk[nlp]"]
+postgres   = ["genai-tk[postgres]"]
+streamlit  = ["genai-tk[streamlit]"]
+baml       = ["genai-tk[baml]", "baml-py"]  # baml-py must be direct to expose baml-cli binary
+chromadb   = ["genai-tk[chromadb]"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["wiki"]

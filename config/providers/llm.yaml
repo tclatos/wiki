@@ -1,0 +1,91 @@
+########################
+# LLM service provider
+########################
+
+# Registered LLMs Services, extending or overriding the models in models.dev (data/models_dev.json) 
+
+
+# Capabilities can be : 'thinking', 'structured_outputs', 'pdf', 'vision'
+# Capabilities, max_tokens, and context_window are automatically derived from the models.dev
+# database (data/models_dev.json) when not explicitly set here.
+# Override them only when the profile data is absent or incorrect for your use case.
+
+# Provider documentation links:
+# OpenAI: https://platform.openai.com/docs/models
+# DeepInfra: https://deepinfra.com/models
+# Groq: https://console.groq.com/docs/models
+# Together: https://docs.together.ai/docs/inference-models
+# Google/Vertex AI: https://cloud.google.com/vertex-ai/docs/generative-ai/model-reference/text
+# Ollama: https://ollama.ai/library
+# EdenAI v3 OpenAI-compatible API: https://app.edenai.run/models 
+# Azure OpenAI: https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models
+# OpenRouter: https://openrouter.ai/docs#models
+# Amazon : https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html
+# DeepSeek: https://api-docs.deepseek.com/quick_start/pricing 
+# HuggingFace: https://huggingface.co/models
+# LiteLLM: https://docs.litellm.ai/docs/providers
+# ...
+
+#cSpell: disable
+
+
+
+llm:
+  exceptions:
+
+    - model_id: parrot_local  # fake model for tests
+      providers:
+        - fake: parrot
+
+    - model_id: claude-haiku
+      providers:
+        - openrouter: anthropic/claude-haiku-4.5
+        - edenai: anthropic/claude-haiku-4-5
+
+    # Models used by the wiki agent/docgraph profiles — declared explicitly so
+    # they resolve without the models.dev catalogue (offline / firewalled use).
+    - model_id: glm_5.3_Flash
+      providers:
+        - openrouter: z-ai/glm-5.3-flash
+
+    - model_id: deepseek-v4-flash-0731
+      providers:
+        - openrouter: deepseek/deepseek-v4-flash
+
+    - model_id: gemini-2.5-flash
+      providers:
+        - openrouter: google/gemini-2.5-flash
+
+    - model_id: mistral_7b
+      providers:
+        - custom:  # ChatOpenAI class parameters - see https://python.langchain.com/api_reference/openai/chat_models/langchain_openai.chat_models.base.ChatOpenAI.html
+            model: mistralai/Mistral-7B-Instruct-v0.3
+            base_url: https://gateway.cp4sc.platform.codex-platform.com/mistral/v1
+            default_headers:
+              X-Gravitee-Api-Key: ${oc.env:GRAVITEE_KEY, null } 
+      capabilities: ['structured_outputs']
+      max_tokens: 4096
+      context_window: 32768
+
+    - model_id: ministral_8b
+      providers:
+        - openrouter: mistralai/ministral-8b-latest
+      capabilities: ['structured_outputs']  # not in models.dev; keep as explicit override
+
+    - model_id: mistral-nemo  
+      providers:
+        - mistral: open-mistral-nemo
+
+    - model_id: mistral-medium  
+      providers:
+        - edenai: mistral/mistral-medium-latest 
+
+
+    - model_id: mistral-small  
+      providers:
+        - edenai: mistral/mistral-small-latest 
+        - edenai-eur: mistral/mistral-small-latest 
+
+    - model_id: kimi-2.5  
+      providers:
+        - edenai: amazon/moonshotai.kimi-k2.5

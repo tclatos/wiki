@@ -1,0 +1,179 @@
+# Extending Wiki
+
+This guide covers the common extension points for genai-tk projects.
+For step-by-step procedures, see the copilot skills listed at the bottom.
+
+## CLI Commands
+
+Create `wiki/commands/my_commands.py`:
+
+```python
+from __future__ import annotations
+from typing import Annotated
+import typer
+from rich.console import Console
+from genai_tk.cli.base import CliTopCommand
+
+console = Console()
+
+class MyCommands(CliTopCommand):
+    description: str = "My commands"
+
+    def get_description(self) -> tuple[str, str]:
+        return "mygroup", self.description
+
+    def register_sub_commands(self, cli_app: typer.Typer) -> None:
+        @cli_app.command()
+        def hello(name: Annotated[str, typer.Argument()] = "world") -> None:
+            """Say hello."""
+            console.print(f"Hello, {name}!")
+```
+
+Register in `config/app_conf.yaml`:
+```yaml
+cli:
+  commands:
+    - wiki.commands.my_commands.MyCommands
+```
+
+## Agent Tools
+
+Create `wiki/tools/my_tool.py`:
+
+```python
+from langchain_core.tools import tool
+
+@tool
+def my_tool(input: str) -> str:
+    """One-line description visible to the agent."""
+    return f"Result: {input}"
+```
+
+Reference in an agent profile (`config/agents.yaml`):
+```yaml
+agents:
+  my_agent:
+    harness: langchain
+    tools:
+      - function: wiki.tools.my_tool.my_tool
+```
+
+For a factory-pattern tool:
+```python
+from langchain_core.tools import BaseTool
+
+class MyTool(BaseTool):
+    name: str = "my_tool"
+    description: str = "What this tool does."
+
+    def _run(self, input: str) -> str:
+        return f"Result: {input}"
+
+    async def _arun(self, input: str) -> str:
+        return self._run(input)
+
+def create_my_tools() -> list[BaseTool]:
+    return [MyTool()]
+```
+
+Reference tool in an agent profile (`config/agents.yaml`):
+```yaml
+tools:
+  - wiki.tools.my_tool.create_my_tools
+```
+
+## LCEL Chains
+
+Create `wiki/chains/my_chain.py`:
+
+```python
+from genai_tk.core.factories.llm_factory import get_llm
+from genai_tk.core.prompts import def_prompt
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import Runnable
+
+def get_chain() -> Runnable:
+    llm = get_llm()
+    prompt = def_prompt(
+        system="You are a helpful assistant.",
+        user="{question}",
+    )
+    return prompt | llm | StrOutputParser()
+```
+
+## Webapp Pages
+
+Create `wiki/webapp/pages/my_page.py` (Streamlit):
+
+```python
+import streamlit as st
+from genai_tk.core.factories.llm_factory import get_llm
+
+st.title("My Page")
+if question := st.chat_input("Ask me anything..."):
+    llm = get_llm()
+    response = llm.invoke(question)
+    st.markdown(response.content)
+```
+
+Register in `config/webapp.yaml`:
+```yaml
+ui:
+  pages_dir: ${paths.project}/wiki/webapp/pages
+  navigation:
+    my-section:
+      - my_page.py
+```
+
+## Agent Profiles
+
+Add to `config/agents.yaml` (unified schema — `harness:` discriminates LangChain vs DeerFlow):
+
+```yaml
+agent_defaults:
+  default_profile: my_agent
+
+agents:
+  my_agent:
+    harness: langchain
+    name: "My Agent"
+    type: react           # react | deep | custom
+    llm: default
+    system_prompt: "You are a helpful assistant."
+    tools:
+      - wiki.tools.example_tool.create_example_tools
+    mcp_servers: []
+    skill_directories:
+      - ${paths.project}/skills/custom
+```
+
+Run: `cli agents run my_agent --chat` (the unified harness resolves the profile by key — works for DeerFlow profiles too).
+
+## MCP Servers
+
+Add to `config/mcp_servers.yaml`:
+```yaml
+mcp_servers:
+  my-server:
+    command: uvx
+    args: [mcp-server-my-tool]
+    env:
+      MY_API_KEY: ${oc.env:MY_API_KEY}
+```
+
+Reference in an agent profile:
+```yaml
+mcp_servers: [my-server]
+```
+
+## Copilot Skills for Common Tasks
+
+When using GitHub Copilot, Cursor, or Claude Code, read the relevant skill:
+
+| Task | Skill |
+|------|-------|
+| Add CLI command | `skills/genai-tk/add-cli-command/SKILL.md` |
+| Add agent tool | `skills/genai-tk/add-tool/SKILL.md` |
+| Add agent profile | `skills/genai-tk/agent-profiles/SKILL.md` |
+| Add MCP server | `skills/genai-tk/add-mcp-server/SKILL.md` |
+| Create a skill | `skills/genai-tk/add-skill/SKILL.md` |

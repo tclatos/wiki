@@ -1,0 +1,210 @@
+# GenAI Toolkit Configuration
+# Basic configuration for running tests, Agents and CLI commands
+
+# Active profile — override with GENAITK_PROFILE env var.
+profile: ${oc.env:GENAITK_PROFILE,local}
+
+
+paths:
+  home: ${oc.env:HOME}
+  project: ${oc.env:PWD}
+  src: ${paths.project}/genai_tk
+  config: ${paths.project}/config
+  data_root: ${paths.project}/data
+
+nlp:
+  default_language: en
+  default_model: en_core_web_md
+  models:
+    en: en_core_web_md
+    fr: fr_core_news_sm
+
+
+# :merge: lists gitignore-style patterns (relative to this directory) for YAML
+# files to load and deep-merge into the config, in sorted order.
+# Use '!' prefix to exclude files matched by an earlier pattern.
+:merge:
+  - "**/*.yaml"
+  - "!demos/**"
+  - "!mcp/**"
+  - "!examples/**"  # bundled agent-profile categories; loaded by load_agent_profiles(), not global config
+
+# :profiles: provides inline per-profile overrides.  The block matching the active
+# profile is deep-merged after all :merge: files.  A nested :merge: within a
+# profile block loads additional files relative to this directory.
+:profiles:
+  local:
+    llm:
+      models:
+        default: gpt_oss120@edenai
+        fake: parrot_local@fake
+        safe_llm: mistral-small@edenai
+        cheap_model: claude-haiku@openrouter
+        fast_model: claude-haiku@openrouter
+        default_vlm: gemini-2.5-flash@openrouter   # vision model for image descriptions / query_image
+      cache: sqlite
+      cache_path: data/llm_cache/langchain.db
+    embeddings:
+      models:
+        default: qwen3_06b@deepinfra
+        local: artic_22@ollama
+        fake: embeddings_768@fake
+      cache: data/hf_models
+    vector_store:
+      default: InMemory
+    postgres:
+      default:
+        mode: external
+        url: postgresql+asyncpg://${oc.env:POSTGRES_USER,postgres}:${oc.env:POSTGRES_PASSWORD}@localhost:5432/genai
+    kv_store:
+      default:
+        type: key_value.aio.stores.filetree.FileTreeStore
+        args:
+          data_directory: ${paths.data_root}/kv_store
+      postgres:
+        type: key_value.aio.stores.postgresql.PostgreSQLStore
+        args:
+          url: postgresql://${oc.env:POSTGRES_USER,unknown_user}:${oc.env:POSTGRES_PASSWORD}@localhost:5432/ekg
+    llm_cache:
+      method: memory
+    chains:
+      root: tests.chains
+      modules:
+        - ${..root}.joke
+    structured:
+      default:
+        baml_client: tests.baml_client
+    monitoring:
+      # ── LangFuse aliases ──────────────────────────────────────────────────
+      # Switch between backends by changing which alias is merged under langfuse:
+      #
+      #   langfuse: *langfuse_cloud   → send traces to cloud.langfuse.com
+      #   langfuse: *langfuse_local   → send traces to localhost:3000 (docker-compose)
+      #
+      _langfuse_cloud: &langfuse_cloud
+        host: https://cloud.langfuse.com
+        public_key: ${oc.env:LANGFUSE_PUBLIC_KEY,""}
+        secret_key: ${oc.env:LANGFUSE_SECRET_KEY,""}
+
+      _langfuse_local: &langfuse_local
+        host: ${oc.env:LANGFUSE_HOST,http://localhost:3000}
+        public_key: ${oc.env:LANGFUSE_PUBLIC_KEY,""}
+        secret_key: ${oc.env:LANGFUSE_SECRET_KEY,""}
+
+      backends: [langfuse, langsmith, local]
+      project: GenAI_demo
+      langfuse: *langfuse_cloud
+      local_log:
+        path: ${paths.data_root}/traces/llm_calls.jsonl
+        include_prompts: true
+
+  pytest:
+    llm:
+      models:
+        default: gpt_oss20@openrouter
+        fake: parrot_local@fake
+        cheap_model: claude-haiku@openrouter
+        fast_model: claude-haiku@openrouter
+        default_vlm: parrot_local@fake
+    embeddings:
+      models:
+        # Tests must not require provider API keys: the pytest profile's
+        # default embeddings resolve to the in-process fake model so that any
+        # embeddings_store entry using the 'default' tag (or no embeddings at
+        # all) works in a clean CI environment.
+        default: embeddings_768@fake
+        fake: embeddings_768@fake
+        test: ada-002@openai
+      cache: data/hf_models
+    kv_store:
+      default:
+        type: key_value.aio.stores.memory.MemoryStore
+        args: {}
+    llm_cache:
+      method: memory
+    logging:
+      level: INFO
+    vector_store:
+      postgres_url: null
+    structured:
+      default:
+        baml_client: tests.baml_client
+
+  test_unit:
+    test_env:
+      llm:
+        models:
+          default: gpt-3.5-turbo
+        max_tokens: 1000
+        temperature: 0.7
+      features:
+        enable_caching: true
+        enable_logging: false
+      db:
+        host: localhost
+        port: 5432
+        name: test_db
+      cli:
+        commands:
+          - test.module:register_commands
+          - test.module2:register_commands
+      ui:
+        app_name: Test App
+        pages_dir: /tmp/pages
+    prod_env:
+      llm:
+        models:
+          default: gpt-4
+        max_tokens: 2000
+        temperature: 0.1
+      features:
+        enable_caching: true
+        enable_logging: true
+      db:
+        host: prod.example.com
+        port: 5432
+        name: prod_db
+
+
+:env:
+  LOGURU_LEVEL: INFO
+  LANGSMITH_TRACING: "false"  # Disable LangChain v2 tracing by default (can be enabled in overrides or env)
+
+
+# Test suite configuration
+# Paths are relative to the project root; absent keys fall back to common defaults.
+test:
+  unit: tests/unit_tests
+  integration: tests/integration_tests
+  evals: tests/eval_tests
+  notebooks: examples/notebooks
+
+# Prefect server configuration
+prefect:
+  host: "127.0.0.1"
+  port: 4200
+  auto_start: true   # auto-start server when 'cli workflow run' is called
+
+# Command Line Interface configuration
+cli:
+  commands:  # List modules.functions or modules.classes to register CLI commands
+    - genai_tk.cli.commands_core.CoreCommands
+    - genai_tk.cli.commands_info.InfoCommands
+    - genai_tk.cli.commands_test.TestCommands
+    - genai_tk.workflow.commands.WorkflowCommands
+    - genai_tk.workflow.prefect_commands.PrefectCommands
+    - genai_tk.extra.commands_extra.ExtraCommands
+    - genai_tk.agents.commands_agents.AgentCommands
+    - genai_tk.agents.sandbox.cli_commands.SandboxCommands
+    - genai_tk.extra.structured.commands_baml.BamlCommands
+    - genai_tk.workflow.rag.commands_rag.RagCommands
+    - genai_tk.mcp.cli_commands.McpCommands
+    - genai_tk.cli.commands_skills.SkillsCommands
+    - genai_tk.main.cli.register_commands
+    - genai_graph.core.commands_bench.BenchCommands
+    - genai_graph.core.commands_docgraph.DocGraphCommands
+    - wiki.commands.agent_commands.AgentCommands
+    - wiki.commands.wiki_commands.WikiCommands
+    - genai_tk.cli.commands_monitoring.MonitoringCommands
+    - genai_tk.cli.commands_trajectory.TrajectoryCommands
+    - browser_control.commands.example_commands.ExampleCommands

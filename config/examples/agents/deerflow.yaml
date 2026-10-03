@@ -1,0 +1,144 @@
+# DeerFlow agent profiles — unified schema (``harness: deerflow``).
+#
+# DeerFlow profiles are fully self-describing (no inheritance from agent_defaults).
+# DeerFlow runtime settings (skills mount, general title/summarization/memory,
+# recursion limit, default profile) live in ``config/examples/deerflow.yaml``.
+
+agents:
+  # Minimal starter profile — no MCP, no skills, no Docker. The simplest way
+  # to try the DeerFlow TUI: `cli agents tui simple-deerflow` (needs only an LLM
+  # API key). mode: flash keeps latency low; switch to thinking/pro for harder
+  # tasks. Serves as both a starter entry point and a template to copy from.
+  simple-deerflow:
+    harness: deerflow
+    name: "simple-deerflow"
+    description: "Minimal DeerFlow starter — chat + bash, no external deps"
+    mode: "flash"  # quick responses
+    subagent_enabled: false
+    plan_mode: false
+    sandbox: local
+    tool_groups:
+      - bash
+    mcp_servers: []
+    features:
+      - "⚡ Fast Mode"
+      - "💻 Bash"
+    examples:
+      - "Write a Python one-liner to reverse a string"
+      - "List the files in the current directory"
+      - "Explain what a closure is in Python"
+
+  "Research Assistant":
+    harness: deerflow
+    name: "Research Assistant"
+    description: "Web research with deep reasoning, visualizations, and skill execution"
+    mode: "pro"  # thinking + plan mode
+    llm: gpt_oss120@openrouter
+    subagent_enabled: false
+    plan_mode: true
+    sandbox: docker
+    tool_groups:
+      - web
+      - file
+      - bash
+    mcp_servers:
+      - tavily-mcp
+    skill_directories:
+      - ${paths.project}/ext/deer-flow/skills  # Public skills (Docker-accessible)
+      # - ${paths.project}/skills/custom          # Project custom skills
+    # Skill filtering: only expose these skills to the agent (omit to allow all)
+    # available_skills:
+    #   - public/deep-research
+    #   - public/data-analysis
+    # Custom middlewares — same format as LangChain agent profiles (``class``
+    # qualified name + arbitrary constructor kwargs). Reuses any LangChain
+    # AgentMiddleware, including the shared anonymization/routing middleware
+    # (see the "Privacy-Safe Research" profile below for an example):
+    # middlewares:
+    #   - class: genai_tk.agents.deer_flow.middlewares.LoggingMiddleware
+    features:
+      - "🌐 Web Search"
+      - "📊 Data Analysis"
+      - "📈 Chart Generation"
+      - "🧠 Planning Mode"
+    examples:
+      - "Research the latest developments in quantum computing"
+      - "Compare different approaches to RAG systems"
+      - "Explain what MOE is to a 12-year-old boy"
+
+  "Web Browser":
+    harness: deerflow
+    name: "Web Browser"
+    description: "Fast web browsing and content extraction"
+    mode: "flash"  # quick responses
+    subagent_enabled: false
+    plan_mode: false
+    sandbox: local
+    tool_groups:
+      - web
+    mcp_servers:
+      - playwright
+    features:
+      - "🌐 Web Browsing"
+      - "📄 Content Extraction"
+      - "⚡ Fast Mode"
+    examples:
+      - "Go to atos.net, find the blog section and list recent articles"
+      - "Navigate to github.com/bytedance/deer-flow and summarize the project"
+
+  "Chinook DB + Research":
+    harness: deerflow
+    name: "Chinook DB + Research"
+    description: "SQL database with web research"
+    mode: "thinking"  # reasoning mode
+    subagent_enabled: false
+    plan_mode: false
+    sandbox: local
+    tool_groups:
+      - web
+    mcp_servers:
+      - tavily-mcp
+    tools:
+      - genai_tk.agents.tools.langchain.sql_tool_factory.create_sql_tool_from_config:
+          config:
+            database_uri: "sqlite:///use_case_data/other/Chinook.db"
+            tool_name: "query_chinook"
+            tool_description: "Query the Chinook music database for information about artists, albums, tracks, customers, and invoices"
+            top_k: 15
+    skill_directories:
+      - ${paths.project}/ext/deer-flow/skills
+      - ${paths.project}/skills/custom
+    features:
+      - "🗄️ SQL Database"
+      - "🔍 Web Search"
+      - "📊 Data Visualization"
+    examples:
+      - "Find the top 5 genres by number of tracks, then research each genre's history"
+
+  "Privacy-Safe Research":
+    harness: deerflow
+    name: "Privacy-Safe Research"
+    description: "Web research with PII anonymization and sensitivity-based LLM routing"
+    mode: "thinking"
+    subagent_enabled: false
+    plan_mode: false
+    sandbox: local
+    tool_groups:
+      - web
+    mcp_servers:
+      - tavily-mcp
+    # Reuses the exact same LangChain AgentMiddleware classes used by
+    # `cli agents run` — see docs/middleware-pii-and-routing.md.
+    middlewares:
+      - class: genai_tk.agents.langchain.middleware.anonymization_middleware.AnonymizationMiddleware
+        analyzed_fields: [PERSON, EMAIL_ADDRESS, PHONE_NUMBER, CREDIT_CARD]
+        fuzzy_deanonymize: true
+      - class: genai_tk.agents.langchain.middleware.sensitivity_router_middleware.SensitivityRouterMiddleware
+        safe_llm: gpt_41mini@openai
+        sensitive_source_patterns: ["**/hr/**", "**/confidential/**"]
+    features:
+      - "🔒 PII Anonymization"
+      - "🧭 Sensitivity Routing"
+      - "🌐 Web Search"
+    examples:
+      - "My name is Alice Martin, email alice@example.com — research recent AI safety papers"

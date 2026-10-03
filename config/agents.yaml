@@ -1,0 +1,109 @@
+# Unified Agent Profiles — all harnesses under one ``agents:`` dict.
+#
+# Each profile carries a ``harness:`` discriminator (``langchain`` | ``deerflow``).
+# The optional ``agent_defaults:`` block holds inheritable defaults applied to
+# ``harness: langchain`` profiles (DeerFlow profiles are fully self-describing).
+# See docs/agents.md and docs/harness.md.
+
+agent_defaults:
+  type: react
+  llm: null  # null = use the global default LLM from config
+  middlewares:
+    - class: genai_tk.agents.langchain.middleware.rich_middleware.RichToolCallMiddleware
+  checkpointer:
+    type: none
+  backend:
+    type: none
+  enable_planning: true
+  enable_file_system: true
+  skills:
+    directories:
+      - ${paths.project}/skills/custom
+      - ${paths.project}/skills/community
+  default_profile: default
+
+agents:
+  wiki:
+    harness: langchain
+    name: "Wiki Curator"
+    type: deep
+    llm: glm_5.3_Flash@openrouter
+    description: "Deep agent that answers questions about the wiki corpus by navigating the Document Graph."
+    system_prompt: |
+      You are an expert wiki analyst answering questions about the wiki corpus by navigating the
+      Document Graph via your tools. You do NOT have the documents memorised — you must read them
+      via the graph tools: `get_folder_toc`, `get_document_toc`, `get_section_content`, `search_sections`.
+      Always start by reading your domain skill `wiki-qa` (`/custom/wiki-qa/SKILL.md`) for navigation
+      rules and answering guidelines.
+
+      Navigation discipline:
+      - Call `get_folder_toc` first to see which documents exist, each with a one-line description.
+      - Call `get_document_toc(document_id, max_level=2)` on promising documents to inspect their
+        section tree, then `get_section_content` on the 1-3 matching sections.
+      - Use `search_sections` with targeted terms to locate specific content; pass `document_id` to
+        scope searches when the document is known.
+      - NEVER sequentially iterate or crawl every section in a document. Select from the TOC.
+
+      Answering rules:
+      - Ground every claim in section text you actually read; cite section ids as `[hash::sequence]`
+        and name the source document.
+      - Images are referenced in section markdown as `<!-- Image: <file> -->` comments, often with
+        `<!-- Image Description: ... -->`. For questions about a figure or chart, use `query_image`
+        (budgeted: max 3 calls per question) on that specific image; otherwise rely on the stored
+        image descriptions.
+      - Never invent content that is not in the graph. If the information is genuinely absent, say so.
+      - Answer directly: concise conclusion first, then supporting details and citations.
+    tools:
+      - genai_tk.agents.tools.langchain.search_tools_factory.create_search_tool
+    skill_directories:
+      - ${paths.project}/skills/custom
+      - ${paths.project}/skills/community
+    middlewares:
+      - class: genai_tk.agents.langchain.middleware.empty_response_retry.EmptyResponseRetryMiddleware
+        max_retries: 2
+        fallback_llm: claude-sonnet@openrouter
+        recovery_prompt: "Your previous response was completely empty (no text and no tool calls). Please continue your analysis and provide your response, emit the next required tool call, or deliver your final answer."
+      - class: genai_tk.agents.langchain.middleware.rich_middleware.RichToolCallMiddleware
+      - class: genai_tk.agents.langchain.middleware.observation_truncation_middleware.ObservationTruncationMiddleware
+        max_chars: 14000
+        head_ratio: 0.8
+      - class: genai_tk.agents.langchain.middleware.deduplicate_middleware.DeduplicateToolCallsMiddleware
+        tools: ["get_document_toc", "get_folder_toc", "list_documents", "search_sections", "get_section_content", "query_image", "web_search"]
+        mode: "stub"
+      - class: genai_graph.agent.middleware.map_before_search.MapBeforeSearchMiddleware
+        max_consecutive: 3
+      - class: genai_tk.agents.langchain.middleware.wrap_up_middleware.WrapUpMiddleware
+        soft_limit: 24
+        hard_limit: 36
+    checkpointer:
+      type: none
+    backend:
+      type: none
+    enable_planning: true
+    enable_file_system: true
+    recursion_limit: 160
+
+  default:
+    harness: langchain
+    name: "Default Agent"
+    type: react
+    llm: default
+    system_prompt: >
+      You are a helpful AI assistant for Wiki.
+      Use available tools when they help answer the question.
+    tools:
+      - factory: wiki.tools.example_tool.create_example_tools
+    mcp_servers: []
+
+  research:
+    harness: langchain
+    name: "Research Agent"
+    type: deep
+    llm: default
+    enable_planning: true
+    system_prompt: >
+      You are a research assistant. Plan your approach, use available tools,
+      and produce well-structured, cited responses.
+    skill_directories:
+      - ${paths.project}/skills/custom
+      - ${paths.project}/skills/community

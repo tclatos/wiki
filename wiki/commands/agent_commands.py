@@ -1,0 +1,80 @@
+"""Agent CLI commands for Wiki."""
+
+from __future__ import annotations
+
+import asyncio
+from typing import Annotated
+
+import typer
+from rich.console import Console
+from rich.table import Table
+
+from genai_tk.agents.harness import create_harness
+from genai_tk.agents.harness.registry import list_harness_profiles
+from genai_tk.cli.base import CliTopCommand
+
+console = Console()
+
+
+class AgentCommands(CliTopCommand):
+    """Agent commands for Wiki."""
+
+    description: str = "Run and manage AI agents"
+
+    def get_description(self) -> tuple[str, str]:
+        return "agent", self.description
+
+    def register_sub_commands(self, cli_app: typer.Typer) -> None:
+
+        @cli_app.command("list")
+        def list_profiles() -> None:
+            """List configured agent profiles across every harness."""
+            refs = list_harness_profiles()
+            if not refs:
+                console.print("[yellow]No agent profiles configured.[/yellow]")
+                return
+            table = Table("Key", "Kind", "Harness", "Description")
+            for ref in refs:
+                table.add_row(ref.key, ref.kind, ref.harness, ref.description)
+            console.print(table)
+
+        @cli_app.command()
+        def chat(
+            query: Annotated[str | None, typer.Argument(help="Query to send (omit for interactive mode)")] = None,
+            profile: Annotated[str, typer.Option("-p", "--profile", help="Agent profile key")] = "default",
+            llm: Annotated[str | None, typer.Option("-m", "--llm", help="LLM identifier override")] = None,
+        ) -> None:
+            """Chat with a configured agent profile via the unified harness layer.
+
+            Works for any profile in ``config/agents.yaml`` (LangChain react/deep/custom
+            or DeerFlow) — the harness is auto-resolved from the profile's ``harness:`` field.
+
+            Examples:
+                cli agent chat "What can you do?"
+                cli agent chat -p research "Summarize recent AI news"
+                cli agent chat -p research --llm gpt_4o@openai
+                cli agent chat            # interactive multi-turn mode
+            """
+            try:
+                harness = create_harness(profile, llm_override=llm, force_memory_checkpointer=True)
+            except ValueError as exc:
+                console.print(f"[red]Error:[/red] {exc}")
+                raise typer.Exit(1) from exc
+
+            async def _run() -> None:
+                try:
+                    if query:
+                        from genai_tk.agents.harness.chat_repl import astream_turn
+
+                        await astream_turn(harness, query, console=console)
+                    else:
+                        from genai_tk.agents.harness.chat_repl import run_chat_repl
+
+                        await run_chat_repl(harness, console=console)
+                finally:
+                    await harness.aclose()
+
+            try:
+                asyncio.run(_run())
+            except KeyboardInterrupt:
+                console.print("\n[yellow]Interrupted.[/yellow]")

@@ -1,0 +1,50 @@
+# Lightweight ReAct agents — demos and basic use cases.
+# Inheritable fields (type, llm, middlewares, checkpointer, backend, skills…) come
+# from defaults.yaml; override only what differs per profile.
+
+agents:
+  simple:
+    harness: langchain
+    name: "simple"
+    type: react
+    description: "Simple agents with web search"
+    pre_prompt: "You are an agent having access to the Web."
+    tools:
+      - genai_tk.agents.tools.langchain.search_tools_factory.create_search_function:
+          verbose: true
+
+  filesystem:
+    harness: langchain
+    name: "filesystem"
+    type: react
+    description: "File system manipulation agent"
+    pre_prompt: "You have the ability to manipulate the file system. If the user asks something else, refuse politely."
+    tools:
+      - genai_tk.agents.tools.langchain.search_tools_factory.create_search_function:
+          verbose: true
+    mcp_servers:
+      - "filesystem"
+    examples:
+      - "What are the configuration files in current directory"
+
+  eval_test:
+    harness: langchain
+    name: "eval-test"
+    type: react
+    description: "Minimal profile for evaluation tests — no tools, no LLM (both injected at test time)"
+    system_prompt: "You are a helpful assistant."
+
+  weather:
+    harness: langchain
+    name: "Weather"
+    type: react
+    description: "Weather assistant with web search"
+    tools:
+      - genai_tk.agents.tools.langchain.search_tools_factory.create_search_function:
+          verbose: true
+    mcp_servers:
+      - "filesystem"
+    pre_prompt: "You are a helpful weather assistant. Always provide current weather information and be specific about locations and conditions."
+    examples:
+      - "What is the current weather in Toulouse?"
+      - "Will it rain tomorrow in Paris?"

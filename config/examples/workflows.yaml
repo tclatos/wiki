@@ -1,0 +1,280 @@
+# ---------------------------------------------------------------------------
+# Workflow configuration  (DSL v2)
+# ---------------------------------------------------------------------------
+#
+# Workflows live directly under the top-level 'workflows:' key.
+# Each entry is a named, directly runnable workflow.
+#
+# Single-step workflow:
+#   workflows:
+#     my_flow:
+#       run: dotted.path.to.callable_or_flow
+#       defaults: {key: value}
+#       presets:
+#         my_preset: {key: concrete_value}
+#
+# Multi-step pipeline:
+#   workflows:
+#     my_pipeline:
+#       pipeline:
+#         - id: step1
+#           run: my_flow          # workflow name OR dotted path OR @workflow name
+#           with: {key: value}
+#         - id: step2
+#           run: another_flow
+#           after: [step1]        # readable alias for wait_for
+#           with: {key: value}
+#
+# CLI usage:
+#   cli workflow run markdownize                     # use defaults
+#   cli workflow run markdownize/rainbow             # named preset
+#   cli workflow run markdownize --set sources=/x    # ad-hoc override
+#   cli workflow run markdownize --force md          # re-run markdown conversion
+#   cli workflow list                                # all workflows + presets
+#   cli workflow show markdownize                    # inspect DAG + params
+#
+# Value resolution priority (highest first):
+#   CLI --set > preset values > workflow defaults
+# ---------------------------------------------------------------------------
+
+workflows:
+
+  # ---------------------------------------------------------------------------
+  # Document conversion workflows
+  # ---------------------------------------------------------------------------
+
+  markdownize:
+    description: "Convert directories/zips/files (PDF/DOCX/PPTX/XLSX/images/pre-existing Markdown) to Markdown"
+    run: genai_tk.workflow.markdownize.markdownize_flow
+    defaults:
+      profile: medium
+      batch_size: 5
+      sources: "${paths.data_root}"
+      md_output_dir: "${paths.data_root}/markdown"
+      cache_dir: null
+      pathspecs: null
+    params:
+      sources: {required: true}
+      md_output_dir: {required: true}
+    presets:
+      docs:
+        sources: "${paths.data_root}/documents"
+        md_output_dir: "${paths.data_root}/markdown"
+        pathspecs: ["**/*.pdf", "**/*.docx", "**/*.pptx"]
+      fast:
+        profile: fast
+      best:
+        profile: best
+
+  merge_markdown:
+    description: "Merge all Markdown files in a directory into a single MERGED.md"
+    run: genai_tk.workflow.prefect.flows.merge_markdown_flow.merge_markdown_flow
+    defaults:
+      base_dir: "${paths.data_root}/markdown"
+    params:
+      base_dir: {required: true}
+
+  office2pdf:
+    description: "Convert Office documents (PowerPoint, Excel) to PDF via LibreOffice"
+    run: genai_tk.workflow.prefect.flows.office2pdf_flow.office2pdf_flow
+    defaults:
+      batch_size: 5
+      cache_dir: null
+    params:
+      sources: {required: true}
+      pdf_output_dir: {required: true}
+    presets:
+      docs:
+        sources: "${paths.data_root}/presentations"
+        pdf_output_dir: "${paths.data_root}/pdfs"
+        pathspecs: ["**/*.pptx", "**/*.ppt", "**/*.odp", "**/*.xlsx", "**/*.xls"]
+
+  # ---------------------------------------------------------------------------
+  # RAG ingestion workflows
+  # ---------------------------------------------------------------------------
+
+  rag_ingest:
+    description: "Ingest files into a retriever (vector) store"
+    run: genai_tk.workflow.prefect.flows.rag_flow.rag_file_ingestion_flow
+    defaults:
+      batch_size: 10
+      chunk_size: 512
+      chunker: auto
+    params:
+      base_dir: {required: true}
+      retriever_name: {required: true}
+    presets:
+      docs:
+        base_dir: "${paths.data_root}/markdown"
+        retriever_name: default
+        pathspecs: ["**/*.md"]
+
+  # ---------------------------------------------------------------------------
+  # PII anonymization workflows
+  # ---------------------------------------------------------------------------
+
+  anonymize:
+    description: "Detect and replace PII in text files (Presidio + Faker)"
+    run: genai_tk.workflow.prefect.flows.anonymize_flow.anonymize_files_flow
+    defaults:
+      batch_size: 10
+      save_mapping: false
+      faker_seed: 42
+    params:
+      base_dir: {required: true}
+      output_dir: {required: true}
+    presets:
+      docs:
+        base_dir: "${paths.data_root}/documents"
+        output_dir: "${paths.data_root}/anonymized"
+        pathspecs: ["**/*.txt", "**/*.md"]
+
+  anonymize_and_ingest:
+    description: "Anonymize text files then ingest into a RAG vector store"
+    pipeline:
+      - id: anonymize
+        run: anonymize
+        with:
+          output_dir: "${values.anon_dir}"
+
+      - id: ingest
+        run: rag_ingest
+        after: [anonymize]
+        with:
+          base_dir: "${values.anon_dir}"
+    defaults:
+      batch_size: 10
+      save_mapping: false
+      faker_seed: 42
+      chunk_size: 512
+      chunker: auto
+    params:
+      base_dir: {required: true}
+      anon_dir: {required: true}
+      retriever_name: {required: true}
+    presets:
+      docs:
+        base_dir: "${paths.data_root}/documents"
+        anon_dir: "${paths.data_root}/anonymized"
+        retriever_name: default
+        pathspecs: ["**/*.txt", "**/*.md"]
+
+  # ---------------------------------------------------------------------------
+  # BAML structured extraction workflows
+  # ---------------------------------------------------------------------------
+
+  baml_extract:
+    description: "Extract structured data from files (Markdown/PDF) using BAML"
+    run: genai_tk.workflow.prefect.flows.baml_flow.baml_structured_extraction_flow
+    with:
+      sources: "${values.sources}"
+      json_output_dir: "${values.json_output_dir}"
+      cache_dir: "${values.cache_dir}"
+      pathspecs: "${values.pathspecs}"
+      batch_size: "${values.batch_size}"
+      function_name: "${values.function_name}"
+      config_name: "${values.config_name}"
+      llm: "${values.llm}"
+    defaults:
+      batch_size: 5
+      function_name: ExtractRainbow
+      config_name: default
+      llm: default
+      cache_dir: null
+      pathspecs: ["**/*.md"]
+    params:
+      sources: {required: true}
+      json_output_dir: {required: true}
+      function_name: {required: true}
+    presets:
+      default:
+        sources: "${paths.data_root}"
+        json_output_dir: "${paths.data_root}/structured"
+        pathspecs: ["**/*.md"]
+        function_name: ExtractRainbow
+
+  baml_run:
+    description: "Extract structured data from a single text input using BAML"
+    run: genai_tk.workflow.prefect.flows.baml_flow.baml_single_input_flow
+    with:
+      input_text: "${values.input_text}"
+      function_name: "${values.function_name}"
+      config_name: "${values.config_name}"
+      llm: "${values.llm}"
+    defaults:
+      config_name: default
+      llm: default
+    params:
+      input_text: {required: true}
+      function_name: {required: true}
+    presets:
+      default:
+        input_text: ""
+        function_name: ExtractRainbow
+
+  # ---------------------------------------------------------------------------
+  # JSON → tabular (CSV / Excel) workflows
+  # ---------------------------------------------------------------------------
+
+  json_to_table:
+    description: "Convert JSON extraction outputs to CSV or Excel table"
+    run: genai_tk.workflow.prefect.flows.json_to_table_flow.json_to_table_flow
+    defaults:
+      model: null
+      keys: null
+      pathspecs: ["**/*.json"]
+      sheet_name: Sheet1
+    params:
+      input_dir: {required: true}
+      output_file: {required: true}
+    presets:
+      default:
+        input_dir: "${paths.data_root}/structured"
+        output_file: "${paths.data_root}/table.csv"
+
+  # Pipeline: BAML batch extraction then tabularize results
+  baml_to_table:
+    description: "BAML structured extraction then export to CSV/Excel"
+    pipeline:
+      - id: extract
+        run: baml_extract
+        with:
+          sources: "${values.sources}"
+          json_output_dir: "${values.structured_dir}"
+          function_name: "${values.function_name}"
+          config_name: "${values.config_name}"
+          llm: "${values.llm}"
+          pathspecs: "${values.pathspecs}"
+          batch_size: "${values.batch_size}"
+
+      - id: tabularize
+        run: json_to_table
+        after: [extract]
+        with:
+          input_dir: "${values.structured_dir}"
+          output_file: "${values.output_file}"
+          model: "${values.model}"
+          keys: "${values.keys}"
+          sheet_name: "${values.sheet_name}"
+
+    defaults:
+      config_name: default
+      llm: default
+      pathspecs: ["**/*.md"]
+      batch_size: 5
+      model: null
+      keys: null
+      sheet_name: Sheet1
+    params:
+      sources: {required: true}
+      structured_dir: {required: true}
+      output_file: {required: true}
+      function_name: {required: true}
+    presets:
+      default:
+        sources: "${paths.data_root}"
+        structured_dir: "${paths.data_root}/structured"
+        output_file: "${paths.data_root}/table.csv"
+        function_name: ExtractRainbow
+        pathspecs: ["**/*.md"]
+

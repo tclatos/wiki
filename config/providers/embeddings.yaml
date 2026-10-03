@@ -1,0 +1,63 @@
+########################
+#  Embeddings service provider
+########################
+
+# Dimension is optional
+
+# Registered Embeddings Services
+
+# Provider documentation links:
+# Ollama: https://ollama.com/search?q=embeddings&c=embedding 
+# DeepInfra : https://deepinfra.com/models/embeddings/ 
+# ...
+
+#cSpell: disable
+
+embeddings:
+  registry:
+    - model_id: ada_002
+      providers:
+        - openai: text-embedding-ada-002
+        - edenai: openai/text-embedding-ada-002
+        - azure: text-embedding-ada-002/2023-05-15
+        - openrouter : openai/text-embedding-ada-002
+      dimension: 1536
+
+    - model_id: text_3_small
+      providers:
+        - edenai: openai/text-embedding-3-small
+        - openai: text-embedding-3-small
+        - openrouter: openai/text-embedding-3-small
+      dimension: 1536
+
+    - model_id: qwen3_06b
+      providers:
+        #- edenai: deepinfra/Qwen/Qwen3-Embedding-0.6
+        - deepinfra: Qwen/Qwen3-Embedding-0.6B
+        - openrouter: qwen3_06b  # Listed but may have no active endpoints
+      dimension: 1024
+
+    - model_id: qwen3_4b
+      providers:
+        - deepinfra: Qwen/Qwen3-Embedding-4B
+        - openrouter: qwen/qwen3-embedding-4b  # Listed but may have no active endpoints
+      dimension: 2560
+    - model_id: bge-small-en
+      providers:
+        - local: BAAI/bge-small-en-v1.5
+      dimension: 384
+
+    - model_id: nova_multimodal
+      providers:
+        - edenai: amazon/amazon.nova-2-multimodal-embeddings-v1
+      dimension: 1024
+
+    # - model_id: mistral
+    #   providers:
+    #     - edenai: mistral/mistral-embed
+    #   dimension: 
+
+    - model_id: embeddings_768  # fake embeddings for tests
+      providers:
+        - fake: fake-embeddings
+      dimension: 768
