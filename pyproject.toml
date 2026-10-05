@@ -14,8 +14,8 @@ dependencies = [
 [tool.uv.sources]
 # Local editable checkouts — the README's "active development" variant
 # (--graph-path ../genai-graph). Consumer-level sources win for the whole graph.
-genai-tk = { path = "/home/tcl/prj/genai-tk", editable = true }
-genai-graph = { path = "/home/tcl/prj/genai-graph", editable = true }
+genai-tk = { path = "../genai-tk", editable = true }
+genai-graph = { path = "../genai-graph", editable = true }
 
 [tool.uv]
 package = true
