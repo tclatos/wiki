@@ -16,7 +16,7 @@ library surface — the full story (including every failure along the way) is in
 
 | Command | What it does |
 |---|---|
-| `wiki add SOURCES...` | Markdownize sources (docling; uncaptioned images described by a VLM) and ingest the `Folder → Document → MarkdownSection` graph with section summaries and hybrid-search chunks. |
+| `wiki add SOURCES...` | Dispatch sources through the profile's ingest route table (docling; uncaptioned images described by a VLM) and ingest the `Folder → Document → MarkdownSection` graph with section summaries and hybrid-search chunks. |
 | `wiki search QUERY` | Section-level search: hybrid (vector + BM25), vector-only, or bm25-only, with `--folder` / `--doc` scoping. |
 | `wiki ask [QUESTION]` | Deep agent navigates the graph to answer, with section-id citations. One-shot, `--chat` interactive REPL, or `--tui` full-screen Textual chat. |
 
@@ -94,9 +94,11 @@ ids like `[8a47ec55cbea7e96::1]`.
 
 ## Configuration
 
-- **`config/docgraph.yaml`** — the `wiki` profile: docling markdownize profile,
-  image description settings, section summaries, embeddings model, DB paths
-  (`data/kg/wiki.db`).
+- **`config/docgraph.yaml`** — the `wiki` profile: ingest route table
+  (docling conversion), image description settings, section summaries,
+  embeddings model, DB paths (`data/kg/wiki.db`).
+- **`config/ingest_routes.yaml`** — the `wiki` route table: pathspec rules
+  mapping each source file/URL to an ingestion workflow.
 - **`config/agents.yaml`** — the `wiki` deep agent profile: LLM, system prompt
   (navigation discipline + citation rules), middleware stack
   (empty-response retry, observation truncation, tool-call dedup,

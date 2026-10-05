@@ -4,9 +4,9 @@ The single ``wiki`` command group wraps the genai-graph Document Graph stack wit
 wiki-friendly defaults (docling conversion, uncaptioned-image VLM descriptions,
 hybrid vector + BM25 retrieval):
 
-- ``wiki add``     — markdownize sources (docling by default) and ingest them into
-  the Document Graph, with LLM structure discovery, section summaries and image
-  descriptions.
+- ``wiki add``     — dispatch sources through the profile's ingest route table
+  (docling conversion by default) and ingest them into the Document Graph, with
+  LLM structure discovery, section summaries and image descriptions.
 - ``wiki search``  — hybrid (semantic + BM25) search across ingested sections.
 - ``wiki ask``     — deep agent that navigates the Document Graph to answer
   questions; one-shot, interactive REPL (``--chat``) or Textual TUI (``--tui``).
@@ -122,10 +122,11 @@ class WikiCommands(CliTopCommand):
                 typer.Option("--force", help="Force-invalidate caches from this stage onward (e.g. 'md', 'graph', 'all')."),
             ] = None,
         ) -> None:
-            """Add documents to the wiki (markdownize + ingest into the Document Graph).
+            """Add documents to the wiki (ingest into the Document Graph).
 
-            Documents are converted with the profile's markdownize ladder (docling by
-            default, with uncaptioned-image VLM descriptions), then ingested as a
+            Sources are dispatched through the profile's ingest route table
+            (docgraph_profiles.<profile>.ingest_routes; default 'wiki': docling
+            conversion with uncaptioned-image VLM descriptions), then ingested as a
             Folder -> Document -> MarkdownSection graph with section descriptions and
             summaries. Re-adding unchanged files is a no-op (content-hash MERGE).
 
@@ -136,7 +137,7 @@ class WikiCommands(CliTopCommand):
             """
             from genai_tk.config_mgmt.file_patterns import resolve_config_path
             from genai_tk.utils.prefect_server import prefect_server
-            from genai_tk.workflow.markdownize import markdownize_flow
+            from genai_tk.workflow.routing.dispatcher import ingest_dispatch_flow
 
             from genai_graph.orchestration.document_graph_flow import document_graph_flow
 
@@ -151,7 +152,7 @@ class WikiCommands(CliTopCommand):
             resolved_db = _resolve_db_path(db_path, profile_data, profile)
             resolved_llm = _resolve_llm(llm, profile_data)
             resolved_embeddings = _resolve_embeddings(embeddings, profile_data)
-            md_profile = profile_data.get("markdownize_profile", "docling")
+            routes_name = profile_data.get("ingest_routes", "wiki")
             build = profile_data.get("build") or {}
 
             md_output_dir = str(Path(resolved_db).with_suffix("")) + "_markdown"
@@ -160,11 +161,11 @@ class WikiCommands(CliTopCommand):
             for src in sources:
                 stem = Path(resolve_config_path(src)).stem
                 src_output_dir = str(Path(md_output_dir) / stem)
-                console.print(f"[dim]Markdownizing {src} -> {src_output_dir} (profile: {md_profile})[/dim]")
-                markdownize_flow(
+                console.print(f"[dim]Ingesting {src} -> {src_output_dir} (routes: {routes_name})[/dim]")
+                ingest_dispatch_flow(
                     sources=[src],
                     md_output_dir=src_output_dir,
-                    profile=md_profile,
+                    routes=routes_name,
                     force_stage=force,
                 )
                 per_source_dirs.append(src_output_dir)

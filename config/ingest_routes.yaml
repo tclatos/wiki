@@ -1,0 +1,26 @@
+# ---------------------------------------------------------------------------
+# Wiki ingest route table
+# ---------------------------------------------------------------------------
+# Consumed by `wiki add` (routes resolved from
+# docgraph_profiles.<profile>.ingest_routes): wiki sources are dispatched
+# through this table — the markdownize flow with the 'docling' profile
+# (docling conversion with easyocr, image extraction and uncaptioned-image
+# VLM descriptions).
+#
+# !! FIRST MATCH WINS: rules are evaluated top-down and the first rule whose
+# pathspec matches routes the item. Reordering rules silently re-routes
+# sources (the table fingerprint feeds the caches).
+# Workflow refs are dotted import paths (like the built-in 'default' table's
+# web-page rule) so they resolve in any project, independent of which YAML
+# workflow files the project ships.
+ingest_routes:
+
+  wiki:
+    description: >
+      Wiki sources — all through the markdownize flow (profile 'docling':
+      docling conversion with image extraction and VLM descriptions).
+    routes:
+      - pathspec: "**/*"
+        workflow: genai_tk.workflow.markdownize.markdownize_flow
+        with:
+          profile: docling

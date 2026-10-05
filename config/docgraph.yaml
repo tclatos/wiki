@@ -4,7 +4,9 @@ default_profile: wiki
 docgraph_profiles:
   wiki:
     description: "Wiki — docling conversion, uncaptioned-image VLM descriptions, hybrid retrieval"
-    markdownize_profile: docling
+    # `wiki add` dispatches sources through this route table
+    # (config/ingest_routes.yaml) instead of a markdownize_profile ladder.
+    ingest_routes: wiki
 
     paths:
       sources_dir: ${paths.data_root}/sources
