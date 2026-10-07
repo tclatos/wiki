@@ -41,6 +41,7 @@ docs/
 3. **uv** for all Python execution and package management
 4. **Skills** for domain knowledge — don't bloat system prompts
 5. **Config over code** — agent profiles, tools, and MCP servers live in `config/`
+6. **prefect-yaml** for workflow pipelines — YAML DSL compiled to Prefect DAGs
 
 ## Skills System
 
@@ -66,7 +67,9 @@ cli skills validate --all                # lint all skills
 | Add / edit a skill | `docs/SKILLS.md` |
 | Add an agent profile | `config/agents.yaml` |
 | Add a webapp page | `docs/EXTENDING.md` → "Webapp Pages" |
+| Workflows & pipelines | `skills/development/prefect-yaml/SKILL.md` + `skills/development/workflow-engine/SKILL.md` |
 | Configure LLM / MCP | `config/baseline.yaml`, `config/mcp_servers.yaml` |
+| prefect-yaml internals | https://github.com/tclatos/prefect-yaml |
 | genai-tk internals | https://github.com/tclatos/genai-tk/tree/main/docs |
 
 ## Copilot Skills (VS Code)
@@ -80,3 +83,5 @@ These procedural step-by-step skills are available via `@workspace`:
 | Add agent profile | `add-agent-profile` |
 | Add LCEL chain | `add-chain` |
 | Add tool | `add-tool` |
+| Workflows (prefect-yaml) | `prefect-yaml` |
+| Workflow engine | `workflow-engine` |

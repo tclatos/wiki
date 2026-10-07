@@ -52,7 +52,9 @@ def _resolve_db_path(db_path: str | None, profile_data: dict[str, Any], profile:
     kg_db = paths.get("kg_db")
     if kg_db:
         return str(kg_db)
-    console.print(f"[red]No database path: pass --db or set docgraph_profiles.{profile}.paths.kg_db in config/docgraph.yaml.[/red]")
+    console.print(
+        f"[red]No database path: pass --db or set docgraph_profiles.{profile}.paths.kg_db in config/docgraph.yaml.[/red]"
+    )
     raise typer.Exit(1)
 
 
@@ -88,7 +90,9 @@ class WikiCommands(CliTopCommand):
         def add(
             sources: Annotated[
                 list[str],
-                typer.Argument(help="Directories, files, or .zip archives to add to the wiki (any markdownizer-supported format)."),
+                typer.Argument(
+                    help="Directories, files, or .zip archives to add to the wiki (any markdownizer-supported format)."
+                ),
             ],
             profile: Annotated[
                 str,
@@ -119,7 +123,9 @@ class WikiCommands(CliTopCommand):
             workers: Annotated[int, typer.Option("--workers", help="Parallelism for the LLM outline pre-pass.")] = 4,
             force: Annotated[
                 str | None,
-                typer.Option("--force", help="Force-invalidate caches from this stage onward (e.g. 'md', 'graph', 'all')."),
+                typer.Option(
+                    "--force", help="Force-invalidate caches from this stage onward (e.g. 'md', 'graph', 'all')."
+                ),
             ] = None,
         ) -> None:
             """Add documents to the wiki (ingest into the Document Graph).
@@ -171,7 +177,9 @@ class WikiCommands(CliTopCommand):
                 )
                 per_source_dirs.append(src_output_dir)
 
-            console.print(f"[dim]Ingesting Document Graph into {resolved_db} (llm={resolved_llm}, embeddings={resolved_embeddings})[/dim]")
+            console.print(
+                f"[dim]Ingesting Document Graph into {resolved_db} (llm={resolved_llm}, embeddings={resolved_embeddings})[/dim]"
+            )
             result = document_graph_flow(
                 sources=per_source_dirs,
                 db_path=resolved_db,
@@ -219,7 +227,9 @@ class WikiCommands(CliTopCommand):
             ] = None,
             doc: Annotated[
                 str | None,
-                typer.Option("--doc", "--document", "-d", help="Restrict to this document (hash, prefix, filename, or path)."),
+                typer.Option(
+                    "--doc", "--document", "-d", help="Restrict to this document (hash, prefix, filename, or path)."
+                ),
             ] = None,
             mode: Annotated[
                 str,
@@ -230,7 +240,10 @@ class WikiCommands(CliTopCommand):
             ] = "hybrid",
             embeddings: Annotated[
                 str | None,
-                typer.Option("--embeddings", help="Embeddings model for vector/hybrid search (default: from the docgraph profile)."),
+                typer.Option(
+                    "--embeddings",
+                    help="Embeddings model for vector/hybrid search (default: from the docgraph profile).",
+                ),
             ] = None,
         ) -> None:
             """Search the wiki (hybrid semantic + BM25 by default).
@@ -241,7 +254,11 @@ class WikiCommands(CliTopCommand):
                 wiki search "renewable energy" --mode bm25
             """
             from genai_graph.kg.backend import KuzuBackend
-            from genai_graph.kg.query.document_graph_tools import resolve_document_id, resolve_folder_id, search_sections
+            from genai_graph.kg.query.document_graph_tools import (
+                resolve_document_id,
+                resolve_folder_id,
+                search_sections,
+            )
 
             profile_data = _load_docgraph_profile(profile)
             resolved_db = _resolve_db_path(db_path, profile_data, profile)
@@ -268,9 +285,7 @@ class WikiCommands(CliTopCommand):
             for r in rows:
                 score_str = f", score: {r['score']}" if r.get("score") else ""
                 desc_suffix = f" — {r['description']}" if r.get("description") else ""
-                console.print(
-                    f"- [{r['section_id']}] {r['title']} (line {r['line_start']}{score_str}){desc_suffix}"
-                )
+                console.print(f"- [{r['section_id']}] {r['title']} (line {r['line_start']}{score_str}){desc_suffix}")
                 if r.get("matched_chunk"):
                     console.print(f"    [dim]matched: {r['matched_chunk']}[/dim]")
 
@@ -286,7 +301,9 @@ class WikiCommands(CliTopCommand):
             ] = "wiki",
             docgraph_profile: Annotated[
                 str,
-                typer.Option("--docgraph-profile", help="DocGraph profile name for db_path resolution (default: wiki)."),
+                typer.Option(
+                    "--docgraph-profile", help="DocGraph profile name for db_path resolution (default: wiki)."
+                ),
             ] = "wiki",
             db_path: Annotated[
                 str | None,
@@ -304,7 +321,9 @@ class WikiCommands(CliTopCommand):
                 list[str] | None,
                 typer.Option("--skill-dir", help="Additional runtime skill directory (repeatable)."),
             ] = None,
-            recursion_limit: Annotated[int, typer.Option("--recursion-limit", help="Max LangGraph steps per turn.")] = 160,
+            recursion_limit: Annotated[
+                int, typer.Option("--recursion-limit", help="Max LangGraph steps per turn.")
+            ] = 160,
             chat: Annotated[bool, typer.Option("--chat", help="Interactive multi-turn REPL (memory enabled).")] = False,
             tui: Annotated[bool, typer.Option("--tui", help="Interactive Textual TUI chat (memory enabled).")] = False,
             trace: Annotated[bool, typer.Option("--trace", help="Print graph node trace lines.")] = False,

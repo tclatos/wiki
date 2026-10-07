@@ -1,12 +1,16 @@
 # Wiki — a personal wiki over the genai-graph Document Graph
 
 `wiki` is a complete example of building a domain agent on top of
-[genai-tk](https://github.com/tclatos/genai-tk) +
-[genai-graph](https://github.com/tclatos/genai-graph): a single CLI group that
-turns a folder of documents (Markdown, PDF, DOCX, PPTX, …) into a navigable
+[genai-tk](https://github.com/tclatos/genai-tk),
+[genai-graph](https://github.com/tclatos/genai-graph), and
+[prefect-yaml](https://github.com/tclatos/prefect-yaml): a single CLI group that
+turns a folder of documents, web pages, or Git repositories (Markdown, PDF, DOCX, PPTX, `.ipynb`, …) into a navigable
 **Document Graph**, then answers questions about it with a **deep agent** that
 walks the graph — headings, sections, and hybrid search instead of chunk
 fragmentation.
+
+Workflows and pipelines are orchestrated via declarative YAML definitions compiled and executed by
+[prefect-yaml](https://github.com/tclatos/prefect-yaml).
 
 Built from scratch using only the toolkit's README, scaffolded skills and
 library surface — the full story (including every failure along the way) is in
@@ -16,7 +20,7 @@ library surface — the full story (including every failure along the way) is in
 
 | Command | What it does |
 |---|---|
-| `wiki add SOURCES...` | Dispatch sources through the profile's ingest route table (docling; uncaptioned images described by a VLM) and ingest the `Folder → Document → MarkdownSection` graph with section summaries and hybrid-search chunks. |
+| `wiki add SOURCES...` | Dispatch sources (directories, local files, URLs, Git repositories) through the profile's ingest route table (docling; uncaptioned images described by a VLM) and ingest the `Folder → Document → MarkdownSection` graph with section summaries and hybrid-search chunks. |
 | `wiki search QUERY` | Section-level search: hybrid (vector + BM25), vector-only, or bm25-only, with `--folder` / `--doc` scoping. |
 | `wiki ask [QUESTION]` | Deep agent navigates the graph to answer, with section-id citations. One-shot, `--chat` interactive REPL, or `--tui` full-screen Textual chat. |
 
@@ -25,24 +29,46 @@ from `config/docgraph.yaml` + `config/providers/llm.yaml` — nothing hardcoded.
 
 ## Quick Start
 
-Requires Python 3.12 and [`uv`](https://docs.astral.sh/uv/).
+Requires Python 3.12, [`uv`](https://docs.astral.sh/uv/), and Git.
+
+### Option A: Sibling Checkouts (Recommended for Development)
+
+The codebase is organized as sibling repositories:
 
 ```bash
-# 1. Clone and install
-#    (--extra harnessing installs deepagents/deerflow/sandbox — required by `wiki ask`)
-git clone https://github.com/tclatos/wiki.git && cd wiki
+# 1. Clone sibling repositories
+git clone https://github.com/tclatos/prefect-yaml.git
+git clone https://github.com/tclatos/genai-tk.git
+git clone https://github.com/tclatos/genai-graph.git
+git clone https://github.com/tclatos/wiki.git
+
+# 2. Install wiki with local editable checkouts
+cd wiki
 uv sync --extra harnessing
 
-# 2. Configure credentials for your providers (openrouter, deepinfra, …)
+# 3. Configure credentials for your providers (openrouter, deepinfra, …)
 #    in the environment or your secrets manager.
 
-# 3. Seed the corpus and build the wiki
+# 4. Seed the corpus and build the wiki
 uv run cli wiki add data/sources
 
-# 4. Use it
+# 5. Use it
 uv run cli wiki search "vacation days"
 uv run cli wiki ask "How many vacation days do employees get?"
 ```
+
+### Option B: Standalone Clone
+
+If cloning `wiki` without local sibling directories, uncomment the git entries in `pyproject.toml`:
+
+```toml
+[tool.uv.sources]
+genai-tk = { git = "https://github.com/tclatos/genai-tk", rev = "main" }
+genai-graph = { git = "https://github.com/tclatos/genai-graph", rev = "main" }
+prefect-yaml = { git = "https://github.com/tclatos/prefect-yaml", branch = "main" }
+```
+
+Then run `uv sync --extra harnessing`.
 
 To create **your own** wiki project from scratch (rather than cloning this
 one), follow the [genai-graph README quick
@@ -52,12 +78,14 @@ harnessing`.
 
 ## CLI Reference
 
-### `wiki add` — ingest documents
+### `wiki add` — ingest documents, URLs, and Git repos
 
 ```bash
 uv run cli wiki add ./docs                       # a directory
 uv run cli wiki add report.pdf notes.docx        # individual files
 uv run cli wiki add ./archive.zip                # zip: each archive is a Folder
+uv run cli wiki add https://github.com/owner/repo # remote Git repository
+uv run cli wiki add https://example.com/article   # web page
 
 # Options
 uv run cli wiki add ./docs --profile wiki        # docgraph profile (default: wiki)
@@ -138,6 +166,8 @@ extend `skills/custom/` for your domain.
 
 ## See also
 
+- [prefect-yaml](https://github.com/tclatos/prefect-yaml) — the declarative
+  YAML DSL, typed contracts, manifest caching, and Prefect orchestration engine.
 - [genai-tk](https://github.com/tclatos/genai-tk) — the agent toolkit
   (harnesses, LLM registry, markdownizer, scaffolding).
 - [genai-graph](https://github.com/tclatos/genai-graph) — the Document Graph,

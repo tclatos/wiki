@@ -16,6 +16,7 @@ from genai_tk.cli.base import CliTopCommand
 
 console = Console()
 
+
 class MyCommands(CliTopCommand):
     description: str = "My commands"
 
@@ -43,6 +44,7 @@ Create `wiki/tools/my_tool.py`:
 ```python
 from langchain_core.tools import tool
 
+
 @tool
 def my_tool(input: str) -> str:
     """One-line description visible to the agent."""
@@ -62,6 +64,7 @@ For a factory-pattern tool:
 ```python
 from langchain_core.tools import BaseTool
 
+
 class MyTool(BaseTool):
     name: str = "my_tool"
     description: str = "What this tool does."
@@ -71,6 +74,7 @@ class MyTool(BaseTool):
 
     async def _arun(self, input: str) -> str:
         return self._run(input)
+
 
 def create_my_tools() -> list[BaseTool]:
     return [MyTool()]
@@ -91,6 +95,7 @@ from genai_tk.core.factories.llm_factory import get_llm
 from genai_tk.core.prompts import def_prompt
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import Runnable
+
 
 def get_chain() -> Runnable:
     llm = get_llm()
@@ -166,14 +171,61 @@ Reference in an agent profile:
 mcp_servers: [my-server]
 ```
 
+## Workflows (`prefect-yaml`)
+
+Workflows are declarative pipelines defined in YAML and compiled to Prefect DAGs by
+[prefect-yaml](https://github.com/tclatos/prefect-yaml).
+
+Define a workflow in `config/examples/workflows.yaml` (or your project workflow YAML):
+
+```yaml
+workflows:
+  my_pipeline:
+    description: "Custom processing pipeline"
+    inputs:
+      input_dir:
+        type: path
+        required: true
+    defaults:
+      input_dir: "${paths.data_root}/raw"
+    pipeline:
+      - id: step1
+        run: wiki.workflows.steps.my_step
+        with:
+          input_dir: "${values.input_dir}"
+```
+
+Create a step in Python using the `@workflow` decorator:
+
+```python
+from prefect_yaml import workflow
+
+
+@workflow(name="my_step", description="Custom step")
+def my_step(*, input_dir: str) -> dict:
+    return {"status": "ok", "processed": input_dir}
+```
+
+Run and inspect workflows:
+
+```bash
+uv run cli workflow list
+uv run cli workflow run my_pipeline
+uv run prefect-yaml show my_pipeline
+```
+
+See `skills/development/prefect-yaml/SKILL.md` for full syntax and capabilities.
+
 ## Copilot Skills for Common Tasks
 
 When using GitHub Copilot, Cursor, or Claude Code, read the relevant skill:
 
 | Task | Skill |
 |------|-------|
-| Add CLI command | `skills/genai-tk/add-cli-command/SKILL.md` |
-| Add agent tool | `skills/genai-tk/add-tool/SKILL.md` |
-| Add agent profile | `skills/genai-tk/agent-profiles/SKILL.md` |
-| Add MCP server | `skills/genai-tk/add-mcp-server/SKILL.md` |
-| Create a skill | `skills/genai-tk/add-skill/SKILL.md` |
+| Add CLI command | `skills/development/add-cli-command/SKILL.md` |
+| Add agent tool | `skills/development/add-tool/SKILL.md` |
+| Add agent profile | `skills/development/agent-profiles/SKILL.md` |
+| Add MCP server | `skills/development/add-mcp-server/SKILL.md` |
+| Create a skill | `skills/development/add-skill/SKILL.md` |
+| Workflows (prefect-yaml) | `skills/development/prefect-yaml/SKILL.md` |
+| Workflow engine | `skills/development/workflow-engine/SKILL.md` |
