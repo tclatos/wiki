@@ -17,9 +17,34 @@ ingest_routes:
 
   wiki:
     description: >
-      Wiki sources — all through the markdownize flow (profile 'docling':
+      Wiki sources — git repositories through git_repo flow, web URLs through
+      web_page flow, and files through the markdownize flow (profile 'docling':
       docling conversion with image extraction and VLM descriptions).
     routes:
+      - pathspec: "https://github.com/**"
+        workflow: genai_tk.workflow.prefect.flows.git_repo_flow.git_repo_flow
+        with:
+          profile: docling
+      - pathspec: "https://gitlab.com/**"
+        workflow: genai_tk.workflow.prefect.flows.git_repo_flow.git_repo_flow
+        with:
+          profile: docling
+      - pathspec: "https://bitbucket.org/**"
+        workflow: genai_tk.workflow.prefect.flows.git_repo_flow.git_repo_flow
+        with:
+          profile: docling
+      - pathspec: "**/*.git"
+        workflow: genai_tk.workflow.prefect.flows.git_repo_flow.git_repo_flow
+        with:
+          profile: docling
+      - pathspec: "git@**"
+        workflow: genai_tk.workflow.prefect.flows.git_repo_flow.git_repo_flow
+        with:
+          profile: docling
+      - pathspec: "https://**"
+        workflow: genai_tk.workflow.prefect.flows.web_page_flow.web_page_flow
+      - pathspec: "http://**"
+        workflow: genai_tk.workflow.prefect.flows.web_page_flow.web_page_flow
       - pathspec: "**/*"
         workflow: genai_tk.workflow.markdownize.markdownize_flow
         with:

@@ -1784,7 +1784,7 @@ wheels = [
 [[package]]
 name = "genai-graph"
 version = "0.1.2"
-source = { editable = "/home/tcl/prj/genai-graph" }
+source = { editable = "../genai-graph" }
 dependencies = [
     { name = "baml-lib" },
     { name = "baml-py" },
@@ -1804,6 +1804,7 @@ dependencies = [
     { name = "pandas" },
     { name = "pip" },
     { name = "prefect" },
+    { name = "prefect-yaml" },
     { name = "psycopg", extra = ["binary", "pool"] },
     { name = "pydantic" },
     { name = "python-dotenv" },
@@ -1838,6 +1839,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.3.3" },
     { name = "pip", specifier = ">=25.1.1" },
     { name = "prefect", specifier = ">=3.6.7" },
+    { name = "prefect-yaml", editable = "../prefect-yaml" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.3.2" },
     { name = "pydantic", specifier = ">=2.7.0,<3" },
     { name = "python-dotenv", specifier = ">=1.1.1" },
@@ -1889,7 +1891,7 @@ ui = [
 [[package]]
 name = "genai-tk"
 version = "0.1.0"
-source = { editable = "/home/tcl/prj/genai-tk" }
+source = { editable = "../genai-tk" }
 dependencies = [
     { name = "abbreviations" },
     { name = "bcrypt" },
@@ -1933,6 +1935,7 @@ dependencies = [
     { name = "openpyxl" },
     { name = "pathspec" },
     { name = "prefect" },
+    { name = "prefect-yaml" },
     { name = "py-key-value-aio", extra = ["disk", "filetree", "memory"] },
     { name = "pydantic" },
     { name = "python-dotenv" },
@@ -2055,6 +2058,7 @@ requires-dist = [
     { name = "pathspec", specifier = ">=1.0.2,<1.1.1" },
     { name = "playwright", marker = "extra == 'browser'", specifier = ">=1.51.0" },
     { name = "prefect", specifier = ">=3.6.7" },
+    { name = "prefect-yaml", editable = "../prefect-yaml" },
     { name = "presidio-analyzer", marker = "extra == 'nlp'", specifier = ">=2.2.362" },
     { name = "presidio-anonymizer", marker = "extra == 'nlp'", specifier = ">=2.2.362" },
     { name = "psycopg", extras = ["binary"], marker = "extra == 'postgres'", specifier = ">=3.2.9" },
@@ -4723,6 +4727,41 @@ wheels = [
 ]
 
 [[package]]
+name = "prefect-yaml"
+version = "0.1.0"
+source = { editable = "../prefect-yaml" }
+dependencies = [
+    { name = "httpx" },
+    { name = "loguru" },
+    { name = "omegaconf" },
+    { name = "pathspec" },
+    { name = "prefect" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+    { name = "rich" },
+    { name = "typer" },
+    { name = "xxhash" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.27.0" },
+    { name = "loguru", specifier = ">=0.7.0" },
+    { name = "omegaconf", specifier = ">=2.3.0" },
+    { name = "pathspec", specifier = ">=0.12.0" },
+    { name = "prefect", specifier = ">=3.0.0" },
+    { name = "pydantic", specifier = ">=2.7.0,<3" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24.0" },
+    { name = "pyyaml", specifier = ">=6.0.1" },
+    { name = "rich", specifier = ">=13.7.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.9.0" },
+    { name = "typer", specifier = ">=0.12.0" },
+    { name = "xxhash", specifier = ">=3.5.0" },
+]
+provides-extras = ["dev"]
+
+[[package]]
 name = "preshed"
 version = "3.0.13"
 source = { registry = "https://pypi.org/simple" }
@@ -7061,15 +7100,15 @@ requires-dist = [
     { name = "baml-py", marker = "extra == 'baml'" },
     { name = "docling", specifier = ">=2.130" },
     { name = "easyocr", specifier = ">=1.7" },
-    { name = "genai-graph", editable = "/home/tcl/prj/genai-graph" },
-    { name = "genai-tk", extras = ["baml"], marker = "extra == 'baml'", editable = "/home/tcl/prj/genai-tk" },
-    { name = "genai-tk", extras = ["browser"], marker = "extra == 'browser'", editable = "/home/tcl/prj/genai-tk" },
-    { name = "genai-tk", extras = ["chromadb"], marker = "extra == 'chromadb'", editable = "/home/tcl/prj/genai-tk" },
-    { name = "genai-tk", extras = ["docling"], editable = "/home/tcl/prj/genai-tk" },
-    { name = "genai-tk", extras = ["harnessing"], marker = "extra == 'harnessing'", editable = "/home/tcl/prj/genai-tk" },
-    { name = "genai-tk", extras = ["nlp"], marker = "extra == 'nlp'", editable = "/home/tcl/prj/genai-tk" },
-    { name = "genai-tk", extras = ["postgres"], marker = "extra == 'postgres'", editable = "/home/tcl/prj/genai-tk" },
-    { name = "genai-tk", extras = ["streamlit"], marker = "extra == 'streamlit'", editable = "/home/tcl/prj/genai-tk" },
+    { name = "genai-graph", editable = "../genai-graph" },
+    { name = "genai-tk", extras = ["baml"], marker = "extra == 'baml'", editable = "../genai-tk" },
+    { name = "genai-tk", extras = ["browser"], marker = "extra == 'browser'", editable = "../genai-tk" },
+    { name = "genai-tk", extras = ["chromadb"], marker = "extra == 'chromadb'", editable = "../genai-tk" },
+    { name = "genai-tk", extras = ["docling"], editable = "../genai-tk" },
+    { name = "genai-tk", extras = ["harnessing"], marker = "extra == 'harnessing'", editable = "../genai-tk" },
+    { name = "genai-tk", extras = ["nlp"], marker = "extra == 'nlp'", editable = "../genai-tk" },
+    { name = "genai-tk", extras = ["postgres"], marker = "extra == 'postgres'", editable = "../genai-tk" },
+    { name = "genai-tk", extras = ["streamlit"], marker = "extra == 'streamlit'", editable = "../genai-tk" },
 ]
 provides-extras = ["harnessing", "browser", "nlp", "postgres", "streamlit", "baml", "chromadb"]
 

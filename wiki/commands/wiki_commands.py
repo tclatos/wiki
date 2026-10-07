@@ -159,7 +159,8 @@ class WikiCommands(CliTopCommand):
 
             per_source_dirs: list[str] = []
             for src in sources:
-                stem = Path(resolve_config_path(src)).stem
+                clean_src = src.rstrip("/").removesuffix(".git")
+                stem = Path(resolve_config_path(clean_src)).stem or "source"
                 src_output_dir = str(Path(md_output_dir) / stem)
                 console.print(f"[dim]Ingesting {src} -> {src_output_dir} (routes: {routes_name})[/dim]")
                 ingest_dispatch_flow(
