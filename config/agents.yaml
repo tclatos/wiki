@@ -8,8 +8,7 @@
 agent_defaults:
   type: react
   llm: null  # null = use the global default LLM from config
-  middlewares:
-    - class: genai_tk.agents.langchain.middleware.rich_middleware.RichToolCallMiddleware
+  middlewares: []
   checkpointer:
     type: none
   backend:
@@ -63,7 +62,6 @@ agents:
         max_retries: 2
         fallback_llm: claude-sonnet@openrouter
         recovery_prompt: "Your previous response was completely empty (no text and no tool calls). Please continue your analysis and provide your response, emit the next required tool call, or deliver your final answer."
-      - class: genai_tk.agents.langchain.middleware.rich_middleware.RichToolCallMiddleware
       - class: genai_tk.agents.langchain.middleware.observation_truncation_middleware.ObservationTruncationMiddleware
         max_chars: 14000
         head_ratio: 0.8
